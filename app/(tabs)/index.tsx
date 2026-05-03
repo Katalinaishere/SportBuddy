@@ -1,11 +1,16 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function HomeScreen() {
+
+export default function WelcomeScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>⚽ SportBuddy</Text>
       <Text style={styles.tagline}>Find your game. Find your people.</Text>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/home')}>
+        
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
     </View>
