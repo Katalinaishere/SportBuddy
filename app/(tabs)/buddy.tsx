@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { supabase } from '../../lib/supabase';
 
 export default function BuddyScreen() {
   const { width } = useWindowDimensions();
@@ -8,10 +9,37 @@ export default function BuddyScreen() {
   const [selectedSport, setSelectedSport] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const sports = ['⚽ Football', '🎾 Tennis', '🏃 Running'];
   const times = ['Today', 'Tomorrow', 'This Week'];
   const levels = ['Beginner', 'Intermediate', 'Pro'];
+
+  async function handleFindBuddy() {
+    setLoading(true);
+    setSuccess(false);
+
+    const { error } = await supabase
+      .from('buddy_requests')
+      .insert({
+        sport: selectedSport,
+        time_preference: selectedTime,
+        level: selectedLevel,
+        location: 'Tirana',
+      });
+
+    if (error) {
+      console.log('Error:', error);
+    } else {
+      setSuccess(true);
+      setSelectedSport('');
+      setSelectedTime('');
+      setSelectedLevel('');
+    }
+
+    setLoading(false);
+  }
 
   return (
     <View style={styles.background}>
@@ -21,10 +49,8 @@ export default function BuddyScreen() {
           isWeb && styles.webScrollContent,
         ]}
       >
-        {/* Card */}
         <View style={[styles.card, isWeb && styles.webCard]}>
 
-          {/* Header */}
           <Text style={[styles.header, isWeb && styles.webHeader]}>
             Find a Buddy
           </Text>
@@ -32,10 +58,8 @@ export default function BuddyScreen() {
             Pick your sport, time & level
           </Text>
 
-          {/* Divider */}
           <View style={styles.divider} />
 
-          {/* Sport Selection */}
           <Text style={styles.label}>🏟  What sport?</Text>
           <View style={styles.row}>
             {sports.map((sport) => (
@@ -51,7 +75,6 @@ export default function BuddyScreen() {
             ))}
           </View>
 
-          {/* Time Selection */}
           <Text style={styles.label}>🕐  When?</Text>
           <View style={styles.row}>
             {times.map((time) => (
@@ -67,7 +90,6 @@ export default function BuddyScreen() {
             ))}
           </View>
 
-          {/* Level Selection */}
           <Text style={styles.label}>⚡  Your level?</Text>
           <View style={styles.row}>
             {levels.map((level) => (
@@ -83,21 +105,25 @@ export default function BuddyScreen() {
             ))}
           </View>
 
-          {/* Divider */}
           <View style={styles.divider} />
 
-          {/* Find Button */}
           <TouchableOpacity
             style={[
               styles.button,
               (!selectedSport || !selectedTime || !selectedLevel) && styles.buttonDisabled,
             ]}
             disabled={!selectedSport || !selectedTime || !selectedLevel}
+            onPress={handleFindBuddy}
           >
-            <Text style={styles.buttonText}>Find a Buddy 🔍</Text>
+            <Text style={styles.buttonText}>
+              {loading ? 'Posting...' : 'Find a Buddy 🔍'}
+            </Text>
           </TouchableOpacity>
 
-          {/* Hint */}
+          {success && (
+            <Text style={styles.successText}>✅ Request posted! Looking for buddies...</Text>
+          )}
+
           {(!selectedSport || !selectedTime || !selectedLevel) && (
             <Text style={styles.hint}>Select all options to continue</Text>
           )}
@@ -209,6 +235,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'rgba(255,255,255,0.25)',
     fontSize: 12,
+    marginTop: 12,
+  },
+  successText: {
+    textAlign: 'center',
+    color: '#00C853',
+    fontSize: 14,
     marginTop: 12,
   },
 });
