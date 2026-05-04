@@ -1,8 +1,47 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { supabase } from '../../lib/supabase';
+
+type BuddyRequest = {
+  id: string;
+  sport: string;
+  time_preference: string;
+  level: string;
+  location: string;
+  created_at: string;
+};
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWeb = width > 768;
+
+  const [requests, setRequests] = useState<BuddyRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  async function fetchRequests() {
+    const { data, error } = await supabase
+      .from('buddy_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.log('Error:', error);
+    } else {
+      setRequests(data);
+    }
+    setLoading(false);
+  }
+
+  function getSportEmoji(sport: string) {
+    if (sport.includes('Football')) return '⚽';
+    if (sport.includes('Tennis')) return '🎾';
+    if (sport.includes('Running')) return '🏃';
+    return '🏅';
+  }
 
   return (
     <View style={styles.background}>
@@ -18,7 +57,7 @@ export default function HomeScreen() {
           {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statNumber}>{requests.length}</Text>
               <Text style={styles.statLabel}>Active Requests</Text>
             </View>
             <View style={styles.statCard}>
@@ -33,44 +72,38 @@ export default function HomeScreen() {
 
           {/* Active Buddy Requests */}
           <Text style={styles.sectionTitle}>🔥 Active Requests</Text>
-          <View style={styles.card}>
-            <View style={styles.requestRow}>
-              <Text style={styles.requestEmoji}>⚽</Text>
-              <View style={styles.requestInfo}>
-                <Text style={styles.requestTitle}>Football · Beginner</Text>
-                <Text style={styles.requestSub}>Today · Parku Rinia</Text>
-              </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>2 open</Text>
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.card}>
-            <View style={styles.requestRow}>
-              <Text style={styles.requestEmoji}>🎾</Text>
-              <View style={styles.requestInfo}>
-                <Text style={styles.requestTitle}>Tennis · Intermediate</Text>
-                <Text style={styles.requestSub}>Tomorrow · Liqeni Park</Text>
-              </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>1 open</Text>
-              </View>
-            </View>
-          </View>
+          {loading && (
+            <Text style={styles.loadingText}>Loading requests...</Text>
+          )}
 
-          <View style={styles.card}>
-            <View style={styles.requestRow}>
-              <Text style={styles.requestEmoji}>🏃</Text>
-              <View style={styles.requestInfo}>
-                <Text style={styles.requestTitle}>Running · Any level</Text>
-                <Text style={styles.requestSub}>This Week · Blloku</Text>
-              </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>4 open</Text>
+          {!loading && requests.length === 0 && (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No requests yet</Text>
+              <Text style={styles.emptySubText}>Be the first to post one!</Text>
+            </View>
+          )}
+
+          {requests.map((request) => (
+            <View key={request.id} style={styles.card}>
+              <View style={styles.requestRow}>
+                <Text style={styles.requestEmoji}>
+                  {getSportEmoji(request.sport)}
+                </Text>
+                <View style={styles.requestInfo}>
+                  <Text style={styles.requestTitle}>
+                    {request.sport} · {request.level}
+                  </Text>
+                  <Text style={styles.requestSub}>
+                    {request.time_preference} · {request.location}
+                  </Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>open</Text>
+                </View>
               </View>
             </View>
-          </View>
+          ))}
 
           {/* Nearby Courts */}
           <Text style={styles.sectionTitle}>📍 Nearby Courts</Text>
@@ -152,6 +185,30 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 12,
     marginTop: 8,
+  },
+  loadingText: {
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  emptyCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 12,
+  },
+  emptyText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  emptySubText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
   },
   card: {
     backgroundColor: 'rgba(255,255,255,0.05)',

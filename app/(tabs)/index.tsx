@@ -9,7 +9,7 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <Text style={styles.logo}>⚽ SportBuddy</Text>
       <Text style={styles.tagline}>Find your game. Find your people.</Text>
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/home')}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/signup' as any)}>
         
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
