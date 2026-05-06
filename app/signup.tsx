@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function SignupScreen() {
@@ -8,6 +8,7 @@ export default function SignupScreen() {
   const isWeb = width > 768;
   const router = useRouter();
 
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,71 +18,108 @@ export default function SignupScreen() {
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signUp({
+    if (!username || !email || !password) {
+      setError('Please fill in all fields.');
+      setLoading(false);
+      return;
+    }
+
+    // 1. Create the auth user
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.replace('/(tabs)/home');
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
     }
 
+    // 2. Save the profile
+    const userId = data.user?.id;
+    if (userId) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: userId,
+          username,
+        });
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
+    }
+
+    router.replace('/(tabs)/home');
     setLoading(false);
   }
 
   return (
     <View style={styles.background}>
-      <View style={[styles.card, isWeb && styles.webCard]}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={[styles.card, isWeb && styles.webCard]}>
 
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join SportBuddy in Tirana</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join SportBuddy in Tirana</Text>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        <Text style={styles.label}>EMAIL</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="you@email.com"
-          placeholderTextColor="rgba(255,255,255,0.2)"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+          <Text style={styles.label}>USERNAME</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. katal23"
+            placeholderTextColor="rgba(255,255,255,0.2)"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+          />
 
-        <Text style={styles.label}>PASSWORD</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="min 6 characters"
-          placeholderTextColor="rgba(255,255,255,0.2)"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+          <Text style={styles.label}>EMAIL</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="you@email.com"
+            placeholderTextColor="rgba(255,255,255,0.2)"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
 
-        {error !== '' && (
-          <Text style={styles.errorText}>{error}</Text>
-        )}
+          <Text style={styles.label}>PASSWORD</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="min 6 characters"
+            placeholderTextColor="rgba(255,255,255,0.2)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSignup}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </Text>
-        </TouchableOpacity>
+          {error !== '' && (
+            <Text style={styles.errorText}>{error}</Text>
+          )}
 
-        <TouchableOpacity onPress={() => router.push('/login' as any)}>
-          <Text style={styles.switchText}>
-            Already have an account? <Text style={styles.switchLink}>Log in</Text>
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSignup}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Creating account...' : 'Sign Up'}
+            </Text>
+          </TouchableOpacity>
 
-      </View>
+          <TouchableOpacity onPress={() => router.push('/login' as any)}>
+            <Text style={styles.switchText}>
+              Already have an account? <Text style={styles.switchLink}>Log in</Text>
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -90,6 +128,9 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
     backgroundColor: '#080810',
+  },
+  scroll: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
